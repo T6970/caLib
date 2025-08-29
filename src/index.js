@@ -1,13 +1,9 @@
 const caLib = {
-  newGrid(length,dimension) {
-    if (dimension === 0) return 0;
-    const grid = new Array(length);
-    for (let i = 0; i < length; i++) {
-      grid.i = this.newGrid(length,dimension-1)
-    }
-    return grid
+  newGrid(length,dimension) { // new grid
+    if (dimension === 0) return 0; // 0D array is basically element
+    return Array.from({ length }, () => this.newGrid(length, dimension-1)); // recursion
   };
-  setCell(grid,index,value) {
+  setCell(grid,index,value) { // set cell
     const temp0 = JSON.parse(JSON.stringify(grid)); // immutable quirk 
     let temp1 = temp0
     for (let i = 0; i < index.length - 1; i++) {
