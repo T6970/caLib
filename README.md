@@ -3,9 +3,15 @@ Cellular automata simulation library in JavaScript
 
 ---
 
-## Usage
+# About
+
+caLib is a JavaScript library that provides an engine for cellular automata simulation. 
+caLib supports grid of any dimension, and could handle any cellular automata by converting them to JavaScript functions.
+
+# Usage
 - `caLib.newGrid(dimension)` outputs a new grid array with specified dimension
 
 - `caLib.rulestring(rule)` converts B/S or Hensel notation rulestring to function usable by caLib
 
 - `caLib.step(rule,grid)` outputs the next generation of the specified grid, with specified rule applied to each cell
+
