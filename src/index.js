@@ -8,11 +8,13 @@ const caLib = {
     return grid
   };
   setCell(grid,index,value) {
-    let temp = grid;
+    const temp0 = JSON.parse(JSON.stringify(grid)); // immutable quirk 
+    let temp1 = temp0
     for (let i = 0; i < index.length - 1; i++) {
-      temp = temp[index[i]]
+      temp1 = temp1[index[i]]
     };
-    
+    temp1 = temp1[index[i]]
+    return temp0
   }
 };
 export default caLib;
