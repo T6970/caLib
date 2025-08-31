@@ -37,21 +37,22 @@ const caLib = {
   newGrid(sideLength,dimension,quiescent) {
 
     // edge case: side length and dimension must be a number
+    // dimension === 0 is natural because of leaf nodes, therefore shouldn't throw error
     if (typeof(dimension) !== "number")  throw new TypeError(`Number expected, got a ${typeof dimension}!`);
     if (typeof(sideLength) !== "number") throw new TypeError(`Number expected, got a ${typeof sideLength}!`);
 
     // edge case: negative side length and dimension
-    if (sideLength < 0) throw new RangeError("Side length can't be negative!")
-    if (dimension < 0)  throw new RangeError("Dimension can't be negative!!!")
+    if (sideLength < 0) throw new RangeError("Side length can't be negative!");
+    if (dimension < 0)  throw new RangeError("Dimension can't be negative!!!");
 
     // edge case: side length is 0, return empty array no matter the dimension
     if (sideLength === 0) return [];
     
-    // base case: leaf nodes return quiescent value
+    // base case: leaf nodes return quiescent value no matter the side length
     if (dimension === 0) return quiescent;
     
     // recursion by calling newGrid with one less dimension
-    return Array.from({ length: sideLength }, () => this.newGrid(sideLength, dimension-1, quiescent))
+    return Array.from({ length: sideLength }, () => this.newGrid(sideLength, dimension-1, quiescent));
     
     // therefore this would create a hypercube grid of a certain dimension
     // one dimension because implementation of chunks would render that useless
@@ -62,6 +63,12 @@ const caLib = {
   // return a grid but with the cell at index set to value
   // TODO: support chunks
   updateCell(grid,index,value) {
+
+    // value can be anything, since caLib expects the cells to be anything
+
+    // edge case: grid or index isn't array
+    if (!Array.isArray(grid))  throw new TypeError(`Array expected, got a ${typeof grid}!`);
+    if (!Array.isArray(index)) throw new TypeError(`Array expected, got a ${typeof index}!`);
     
     // edge case: if grid is 0D directly return the value
     if (index.length === 0) return value;
@@ -70,9 +77,9 @@ const caLib = {
     const [head, ...rest] = index;
 
     // edge case: head out of bounds
-    if (head >= grid.length || head < 0) throw new RangeError("Head out of range!")
-    
-    // return a new array where only the target index is replace with value
+    if (head >= grid.length || head < 0) throw new RangeError("Head out of range!");
+
+    // for last recurstion layer, return a new array where only the target index is replaced with value
     return [
       ...grid.slice(0, head),
       this.updateCell(grid[head], rest, value),
@@ -95,7 +102,7 @@ const caLib = {
       // B3
       if (NEIGHBORS === 3 && CELL === 0) return 1;
       // S23
-      if (NEIGHBORS === 2 && CELL >= 2 && CELL <= 3) return 1;
+      if (NEIGHBORS >=2 && NEIGHBORS <= 3 && CELL === 1) return 1;
     }
     */
   },
