@@ -6,38 +6,11 @@ const caLib = {
   
   // returns a new grid
   // TODO: implement chunks (objects with position and array)
-  // A grid with chunks look like this:
-  /*
-    {
-      dimension: 2,
-      chunks: [
-        {
-          position: [3,2],
-          grid: [
-            [0,0,0,0]
-            [2,2,2,0]
-            [0,0,2,0]
-            [0,2,0,0]
-          ]
-        },
-        {
-          position: [3,3],
-          grid: [
-            [0,0,1,0]
-            [0,0,0,1]
-            [0,1,1,1]
-            [0,0,0,0]
-          ]
-        }
-      ]
-    }
-  */
   // Rules are stored separately
   
   newGrid(chunkLength,dimension,quiescent) {
 
-    // edge case: chunk length and dimension must be a number
-    // dimension === 0 is natural because of leaf nodes, therefore shouldn't throw error
+    // edge case: arrays can only have numeric length
     if (typeof(dimension) !== "number")   throw new TypeError(`Number expected, got a ${typeof dimension  }!`);
     if (typeof(chunkLength) !== "number") throw new TypeError(`Number expected, got a ${typeof chunkLength}!`);
 
@@ -46,11 +19,16 @@ const caLib = {
 
     // edge case: chunk length isn't positive, is meaningless
     if (chunkLength < 1) throw new RangeError("Chunk length must be positive!");
+
+    // edge case: arrays can't have floating point lengths
+    if (!Number.isInteger(chunkLength)) throw new RangeError("Integer expected, got a floating point");
+    if (!Number.isInteger(dimension)) throw new RangeError("Integer expected, got a floating point");
     
     // base case: leaf nodes return quiescent value no matter the side length
     if (dimension === 0) return quiescent;
 
-    // make 
+    // make grid with no chunks
+    return({dimension: dimension, quiescent: quiescent, chunkLength: chunkLength, chunks: []})
     
   },
   
@@ -81,6 +59,36 @@ const caLib = {
       ...grid.slice(head + 1)
     ];
     
+  },
+
+  // Internal function
+  // uses sequential method to find and return chunks
+  findChunk(grid,index) {
+    
+    // uses sequential method to find chunk
+    for (let i = 0; i < grid.chunks.length; i++) {
+      if (grid.chunks[i].position = index) return grid.chunks[i]
+    };
+    // edge case: return new chunk if no existing one found
+    const content = hypercube(grid.chunkLength,grid.dimension,grid.quiescent);
+    return {position: index, content: content};
+    
+  },
+
+  // Internal function
+  // makes hypercube array
+  hypercube(sideLength,dimension,fill) {
+
+    const grid = [];
+    
+    // base case: leaf nodes
+    if (dimension === 0) return fill;
+    
+    for (let i = 0; i < sideLength; i++) {
+      grid[i] = this.hypercube(sideLength,dimension-1,fill)
+    };
+
+    return grid
   },
 
   // TODO: support B/S and Hensel notation
