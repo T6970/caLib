@@ -1,5 +1,5 @@
-// Note to self: comments should explain the purpose of code, not what it do.
-// Aim for immutability (to prevent side effects) and stateless (to prevent side effects)
+// Note to self: comments should explain why, not what.
+// Aim for immutability and statelessness, both to prevent side effects)
 
 // Cellular Automata LIBrary
 const caLib = {
@@ -34,28 +34,23 @@ const caLib = {
   */
   // Rules are stored separately
   
-  newGrid(sideLength,dimension,quiescent) {
+  newGrid(chunkLength,dimension,quiescent) {
 
-    // edge case: side length and dimension must be a number
+    // edge case: chunk length and dimension must be a number
     // dimension === 0 is natural because of leaf nodes, therefore shouldn't throw error
-    if (typeof(dimension) !== "number")  throw new TypeError(`Number expected, got a ${typeof dimension}!`);
-    if (typeof(sideLength) !== "number") throw new TypeError(`Number expected, got a ${typeof sideLength}!`);
+    if (typeof(dimension) !== "number")   throw new TypeError(`Number expected, got a ${typeof dimension  }!`);
+    if (typeof(chunkLength) !== "number") throw new TypeError(`Number expected, got a ${typeof chunkLength}!`);
 
-    // edge case: negative side length and dimension
-    if (sideLength < 0) throw new RangeError("Side length can't be negative!");
-    if (dimension < 0)  throw new RangeError("Dimension can't be negative!!!");
+    // edge case: negative dimension, may cause infinite recursion
+    if (dimension < 0) throw new RangeError("Dimension can't be negative!");
 
-    // edge case: side length is 0, return empty array no matter the dimension
-    if (sideLength === 0) return [];
+    // edge case: chunk length isn't positive, is meaningless
+    if (chunkLength < 1) throw new RangeError("Chunk length must be positive!");
     
     // base case: leaf nodes return quiescent value no matter the side length
     if (dimension === 0) return quiescent;
-    
-    // recursion by calling newGrid with one less dimension
-    return Array.from({ length: sideLength }, () => this.newGrid(sideLength, dimension-1, quiescent));
-    
-    // therefore this would create a hypercube grid of a certain dimension
-    // one dimension because implementation of chunks would render that useless
+
+    // make 
     
   },
   
