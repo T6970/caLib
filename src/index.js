@@ -27,7 +27,7 @@ const caLib = {
         dimension   : dimension   , 
         quiescent   : quiescent   , 
         chunkLength : chunkLength , 
-        chunks      : []
+        chunks      : [] // chunks are created lazily
       }
     )
     
@@ -44,10 +44,10 @@ const caLib = {
     // edge case: if grid is 0D directly return the value
     if (index.length === 0) return value;
 
-    const newChunk   = this._findChunk(grid,this._multiplyElements(index, grid.chunkLength));
-    const newContent = JSON.parse(JSON.stringify(newChunk.content)); // deep copy
-    this. setElement     ( newContent , index  , value      );
-    const updatedChunk = { ...newChunk, content: newContent };
+    const newChunk     = this._findChunk(grid,this._multiplyElements(index, grid.chunkLength));
+    const newContent   = structuredClone(newChunk.content); // deep copy to avoid mutation
+          newContent   = this._setElement(newContent,index,value);
+    const updatedChunk = {...newChunk,content:newContent};
     
     const chunksWithoutOld = grid.chunks.filter(c => !this._equalArray(c.position, newChunk.position));
     return { ...grid, chunks: [...chunksWithoutOld, updatedChunk] };
@@ -61,13 +61,12 @@ const caLib = {
   // TODO: use Map for fast lookup
   _findChunk(grid,index) {
     
-    // uses sequential method to find chunk
-    for (let i = 0; i < grid.chunks.length; i++) {
-      if (this.equalArray(grid.chunks[i].position,index)) return grid.chunks[i]
-    };
+    // find chunk
+    const chunk = grid.chunks.find(c => this._equalArray(c.position, index));
+    if (chunk) return chunk;
     
     // edge case: return new chunk if no existing one found
-    const content = this.hypercube(grid.chunkLength,grid.dimension,grid.quiescent);
+    const content = this._hypercube(grid.chunkLength,grid.dimension,grid.quiescent);
     return {position: index, content: content};
     
   },
@@ -79,7 +78,7 @@ const caLib = {
     const grid = [];
     if (dimension === 0) return fill; // base case: leaf nodes
     for (let i = 0; i < sideLength; i++) {
-      grid[i] = this.hypercube(sideLength,dimension-1,fill)
+      grid[i] = this._hypercube(sideLength,dimension-1,fill)
     };
     return grid
   },
@@ -105,17 +104,18 @@ const caLib = {
 
   // Internal function
   // sets element of an array
-  // WARNING: mutable
   _setElement(array,index,value) {
+    const result = array
     // edge case: the function can't process non-arrays
     if (!Array.isArray(array)) throw new TypeError(`Array expected, got a ${typeof array}!`);
     if (!Array.isArray(index)) throw new TypeError(`Array expected, got a ${typeof index}!`);
     
-    let current = array;
+    let current = result;
     for (let i = 0; i < index.length - 1; i++) {
       current = current[index[i]]
     };
-    current[index[index.length - 1]] = value
+    current[index[index.length - 1]] = value;
+    return result
   },
 
 
