@@ -1,158 +1,119 @@
-// NOTE: comments should explain why, not what.
-// Aim for immutability and statelessness, both to prevent side effects)
-
-// TODO: make docstring
+// Cellular Automata Library
+// Emphasizes immutability and statelessness to avoid side effects.
 
 const caLib = {
 
-  // External function
-  // returns a new grid
-  // rules are stored separately
-  newGrid(chunkLength,dimension,quiescent) {
+  /**
+   * Creates a new grid.
+   * @param {number} chunkLength - Length of each chunk side.
+   * @param {number} dimension - Number of dimensions (0D..nD).
+   * @param {*} quiescent - Default state of cells.
+   * @returns {object} - An immutable grid object.
+   */
+  newGrid(chunkLength, dimension, quiescent) {
+    // Validate inputs
+    if (!Number.isInteger(chunkLength) || chunkLength < 1)
+      throw new RangeError("Chunk length must be a positive integer!");
+    if (!Number.isInteger(dimension) || dimension < 0)
+      throw new RangeError("Dimension must be a non-negative integer!");
 
-    // validity check
-    if (typeof(dimension)   !== "number") throw new TypeError  ( `Number expected, got a ${typeof dimension  }!` );
-    if (typeof(chunkLength) !== "number") throw new TypeError  ( `Number expected, got a ${typeof chunkLength}!` );
-    if (dimension   < 0)                  throw new RangeError ( "Dimension can't be negative!"                  );
-    if (chunkLength < 1)                  throw new RangeError ( "Chunk length must be positive!"                );
-    if (!Number.isInteger(chunkLength)  ) throw new RangeError ( "Integer expected, got a floating point!"       );
-    if (!Number.isInteger(dimension  )  ) throw new RangeError ( "Integer expected, got a floating point!"       );
-    
-    // base case: leaf nodes return quiescent value no matter the side length
+    // Edge case: 0D grid is just the quiescent state
     if (dimension === 0) return quiescent;
 
-    // make grid with no chunks
-    return(
-      {
-        dimension   : dimension   , 
-        quiescent   : quiescent   , 
-        chunkLength : chunkLength , 
-        chunks      : [] // chunks are created lazily
-      }
-    )
-    
+    return Object.freeze({
+      chunkLength,
+      dimension,
+      quiescent,
+      chunks: new Map(), // Map<JSON-stringified chunk index, chunk content>
+    });
   },
-  
-  // External function
-  // return a grid but with the cell at index set to value
-  updateCell(grid,index,value) {
-    
-    // edge case: the function can't process non-arrays
-    if (!Array.isArray(grid.chunks)) throw new TypeError(`Array expected, got a ${typeof grid}!` );
-    if (!Array.isArray(index      )) throw new TypeError(`Array expected, got a ${typeof index}!`);
-    
-    // edge case: if grid is 0D directly return the value
+
+  /**
+   * Returns a new grid with one cell updated.
+   * @param {object} grid - The grid object.
+   * @param {number[]} index - Coordinates of the cell.
+   * @param {*} value - New cell value.
+   */
+  updateCell(grid, index, value) {
+    if (!Array.isArray(index))
+      throw new TypeError(`Index must be an array, got ${typeof index}`);
+
+    // Edge case: 0D grid → just return the value directly
+    if (grid.dimension === 0) return value;
+
+    // Calculate chunk and local coordinates
+    const chunkIndex = index.map(i => Math.floor(i / grid.chunkLength));
+    const localIndex = index.map(i => ((i % grid.chunkLength) + grid.chunkLength) % grid.chunkLength);
+
+    const key = JSON.stringify(chunkIndex);
+    const oldChunk = grid.chunks.get(key) ?? this._makeHypercube(grid.chunkLength, grid.dimension, grid.quiescent);
+
+    // Apply immutable set
+    const newChunk = this._immutableSet(oldChunk, localIndex, value);
+
+    // Replace chunk in a new Map
+    const newChunks = new Map(grid.chunks);
+    newChunks.set(key, newChunk);
+
+    return Object.freeze({ ...grid, chunks: newChunks });
+  },
+
+  /**
+   * Creates an n-dimensional hypercube array filled with `fill`.
+   * @param {number} sideLength
+   * @param {number} dimension
+   * @param {*} fill
+   * @returns {Array|*}
+   */
+  _makeHypercube(sideLength, dimension, fill) {
+    if (dimension === 0) return fill;
+    return Array.from({ length: sideLength }, () =>
+      this._makeHypercube(sideLength, dimension - 1, fill)
+    );
+  },
+
+  /**
+   * Immutable setter for n-dimensional arrays.
+   * @param {Array|*} array
+   * @param {number[]} index
+   * @param {*} value
+   * @returns {Array|*}
+   */
+  _immutableSet(array, index, value) {
     if (index.length === 0) return value;
 
-    const newChunk     = this._findChunk(grid,this._multiplyElements(index, grid.chunkLength));
-    const newContent   = structuredClone(newChunk.content); // deep copy to avoid mutation
-          newContent   = this._setElement(newContent,index,value);
-    const updatedChunk = {...newChunk,content:newContent};
-    
-    const chunksWithoutOld = grid.chunks.filter(c => !this._equalArray(c.position, newChunk.position));
-    return { ...grid, chunks: [...chunksWithoutOld, updatedChunk] };
+    const [head, ...tail] = index;
+    if (!Array.isArray(array))
+      throw new RangeError("Index exceeds array depth!");
 
-    
+    return array.map((el, i) =>
+      i === head ? this._immutableSet(el, tail, value) : el
+    );
   },
 
-  
-  // Internal function
-  // uses sequential method to find and return chunks
-  // TODO: use Map for fast lookup
-  _findChunk(grid,index) {
-    
-    // find chunk
-    const chunk = grid.chunks.find(c => this._equalArray(c.position, index));
-    if (chunk) return chunk;
-    
-    // edge case: return new chunk if no existing one found
-    const content = this._hypercube(grid.chunkLength,grid.dimension,grid.quiescent);
-    return {position: index, content: content};
-    
+  /**
+   * Checks deep equality of two arrays.
+   */
+  _equalArray(a, b) {
+    return a.length === b.length && a.every((val, i) => val === b[i]);
   },
 
-  
-  // Internal function
-  // makes hypercube array
-  _hypercube(sideLength,dimension,fill) {
-    const grid = [];
-    if (dimension === 0) return fill; // base case: leaf nodes
-    for (let i = 0; i < sideLength; i++) {
-      grid[i] = this._hypercube(sideLength,dimension-1,fill)
-    };
-    return grid
-  },
-
-  // Internal function
-  _multiplyElements(array,multiplier=1) {return array.map(num => num * multiplier)},
-
-  // Internal function
-  _findElement(array,index) {
-    // edge case: the function can't process non-arrays
-    if (!Array.isArray(array)) throw new TypeError(`Array expected, got a ${typeof array}!`);
-    if (!Array.isArray(index)) throw new TypeError(`Array expected, got a ${typeof index}!`);
-
-    let element = array;
-    for (const idx of index) {
-      if (!Array.isArray(element)         ) throw new RangeError("Index exceeds array depth!");
-      if (idx >= element.length || idx < 0) throw new RangeError("Index out of bounds!"      );
-      element = element[idx]
-    };
-    return element
-    
-  },
-
-  // Internal function
-  // sets element of an array
-  _setElement(array,index,value) {
-    const result = array
-    // edge case: the function can't process non-arrays
-    if (!Array.isArray(array)) throw new TypeError(`Array expected, got a ${typeof array}!`);
-    if (!Array.isArray(index)) throw new TypeError(`Array expected, got a ${typeof index}!`);
-    
-    let current = result;
-    for (let i = 0; i < index.length - 1; i++) {
-      current = current[index[i]]
-    };
-    current[index[index.length - 1]] = value;
-    return result
-  },
-
-
-  // Internal function
-  // normal equality don't compare array content
-  _equalArray(a,b) {
-    if (a.length !== b.length) return false;
-    return a.every((val, index) => val === b[index])
-  },
-
-  // External function
-  // TODO [priority: mid]: support B/S and Hensel notation
-  // B/S notation between B/S and B01234678/S012345678
-  // Hensel notation between B/S and B01ce2aceikn3aceijknqr4aceijknqrtwyz5aceijknqr6aceikn7ce8/S01ce2aceikn3aceijknqr4aceijknqrtwyz5aceijknqr6aceikn7ce8
+  /**
+   * Placeholder for rule parsing (B/S, Hensel).
+   */
   toRule(rulestring) {
-    // TODO: return a function
-    /*
-    Conway's Life:
-    rule(chunk,indexX,indexY) {
-      // neighbor count
-      const NEIGHBORS = chunk[indexX+1][indexY] + chunk[indexX+1][indexY+1] + chunk[indexX][indexY+1] + chunk[indexX-1][indexY+1] + chunk[indexX-1][indexY] + chunk[indexX-1][indexY-1] + chunk[indexX][indexY-1] + chunk[indexX+1][indexY-1];
-      const CELL = chunk[indexX][indexY];
-      // B3
-      if (NEIGHBORS === 3 && CELL === 0) return 1;
-      // S23
-      if (NEIGHBORS >=2 && NEIGHBORS <= 3 && CELL === 1) return 1;
-    }
-    */
+    // TODO: Implement rulestring parser
+    return () => {}; // Return a no-op rule for now
   },
 
-  // External function
-  // TODO [priority: high]: implement step algoritm with O(n) complexity
-  // only update non-quiescent cells and their neighbors
-  step(grid,rule) {},
-   // TODO: return the grid with each cell applied with rule function
-   // rule is a function that parses a variable called 'cell' 
+  /**
+   * Advances the grid by one step using the given rule.
+   * (Future: O(n) implementation focusing only on active cells)
+   */
+  step(grid, rule) {
+    // TODO: Implement efficient step algorithm
+    return grid;
+  }
 };
-
 
 export default caLib;
