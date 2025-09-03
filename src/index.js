@@ -1,5 +1,4 @@
-// Cellular Automata Library
-// Emphasizes immutability and statelessness to avoid side effects.
+// CA LIBrary (or rather library for general purpose grid handling)
 
 const caLib = {
 
