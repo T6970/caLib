@@ -12,10 +12,8 @@ const caLib = {
    */
   newGrid(chunkLength, dimension, quiescent) {
     // Validate inputs
-    if (!Number.isInteger(chunkLength) || chunkLength < 1)
-      throw new RangeError("Chunk length must be a positive integer!");
-    if (!Number.isInteger(dimension) || dimension < 0)
-      throw new RangeError("Dimension must be a non-negative integer!");
+    if (!Number.isInteger(chunkLength) || chunkLength < 1) throw new RangeError("Chunk length must be a positive integer!");
+    if (!Number.isInteger(dimension) || dimension < 0)     throw new RangeError("Dimension must be a non-negative integer!");
 
     // Edge case: 0D grid is just the quiescent state
     if (dimension === 0) return quiescent;
@@ -24,7 +22,7 @@ const caLib = {
       chunkLength,
       dimension,
       quiescent,
-      chunks: new Map(), // Map<JSON-stringified chunk index, chunk content>
+      chunks: new Map(), // used Map to boost lookup
     });
   },
 
@@ -46,7 +44,7 @@ const caLib = {
     const localIndex = index.map(i => ((i % grid.chunkLength) + grid.chunkLength) % grid.chunkLength);
 
     const key = JSON.stringify(chunkIndex);
-    const oldChunk = grid.chunks.get(key) ?? this._makeHypercube(grid.chunkLength, grid.dimension, grid.quiescent);
+    const oldChunk = grid.chunks.get(key) ?? this._hypercube(grid.chunkLength, grid.dimension, grid.quiescent);
 
     // Apply immutable set
     const newChunk = this._immutableSet(oldChunk, localIndex, value);
@@ -57,28 +55,90 @@ const caLib = {
 
     return Object.freeze({ ...grid, chunks: newChunks });
   },
-
+  
+  
+  // placeholder
+  toRule(rulestring) {
+    // TODO: Implement rulestring parser
+    return () => {}; // Return a no-op rule for now
+  },
+  
+  
   /**
-   * Creates an n-dimensional hypercube array filled with `fill`.
-   * @param {number} sideLength
-   * @param {number} dimension
-   * @param {*} fill
-   * @returns {Array|*}
+   * Advances the grid by one step using the provided rule.
+   * @param {object} grid - The current grid object.
+   * @param {function} rule - A function called for each cell:
+   *   (cellValue, coordinates, getCell) => newValue
+   *   - `cellValue`: current state of the cell
+   *   - `coordinates`: global coordinates of the cell
+   *   - `getCell(coords)`: helper to get the state of any neighbor (or quiescent if not present)
+   * @returns {object} - A new immutable grid.
    */
-  _makeHypercube(sideLength, dimension, fill) {
+  step(grid, rule) {
+    if (grid.dimension === 0) {
+      return rule(grid, [], () => grid); // 0D case
+    }
+  
+    const { chunkLength, dimension, chunks, quiescent } = grid;
+  
+    // Helper: Get cell value at global coordinates
+    const getCell = (coords) => {
+      const chunkIndex = coords.map(i => Math.floor(i / chunkLength));
+      const localIndex = coords.map(i => ((i % chunkLength) + chunkLength) % chunkLength);
+      const key = JSON.stringify(chunkIndex);
+      const chunk = chunks.get(key);
+      if (!chunk) return quiescent;
+  
+      // Traverse chunk array
+      return localIndex.reduce((acc, idx) => acc[idx], chunk);
+    };
+
+    // Collect all chunks to process (including neighbors)
+    const chunkCoordsSet = new Set();
+    for (const key of chunks.keys()) {
+      const baseCoords = JSON.parse(key);
+      // Include the chunk itself + all neighbors in n dimensions
+      const offsets = this._neighborOffsets(dimension);
+      for (const offset of offsets) {
+        const neighborCoords = baseCoords.map((c, i) => c + offset[i]);
+        chunkCoordsSet.add(JSON.stringify(neighborCoords));
+      }
+    }
+
+    const newChunks = new Map();
+
+    // Process each chunk
+    for (const key of chunkCoordsSet) {
+      const chunkCoords = JSON.parse(key);
+      const newChunk = this._mapHypercube(
+        chunkLength,
+        dimension,
+        (localCoords) => {
+          const globalCoords = localCoords.map((c, i) => chunkCoords[i] * chunkLength + c);
+          const oldValue = getCell(globalCoords);
+          return rule(oldValue, globalCoords, getCell);
+        }
+      );
+
+      // Only store if it contains any non-quiescent cells
+      if (!this._isHypercubeUniform(newChunk, quiescent)) {
+        newChunks.set(key, newChunk);
+      }
+    }
+
+    return Object.freeze({ ...grid, chunks: newChunks });
+    },
+  
+  
+  // create a filled hypercube
+  _hypercube(sideLength, dimension, fill) {
     if (dimension === 0) return fill;
     return Array.from({ length: sideLength }, () =>
-      this._makeHypercube(sideLength, dimension - 1, fill)
+      this._hypercube(sideLength, dimension - 1, fill)
     );
   },
 
-  /**
-   * Immutable setter for n-dimensional arrays.
-   * @param {Array|*} array
-   * @param {number[]} index
-   * @param {*} value
-   * @returns {Array|*}
-   */
+  // Immutable setter for n-dimensional arrays
   _immutableSet(array, index, value) {
     if (index.length === 0) return value;
 
@@ -91,29 +151,33 @@ const caLib = {
     );
   },
 
-  /**
-   * Checks deep equality of two arrays.
-   */
+  // normal equality checks reference, so this exists
   _equalArray(a, b) {
     return a.length === b.length && a.every((val, i) => val === b[i]);
   },
 
-  /**
-   * Placeholder for rule parsing (B/S, Hensel).
-   */
-  toRule(rulestring) {
-    // TODO: Implement rulestring parser
-    return () => {}; // Return a no-op rule for now
+  // generate all neighbour offsets (including the cell itself) for a given dimension
+  _neighborOffsets(dimension) {
+    if (dimension === 0) return [[]];
+    const smaller = this._neighborOffsets(dimension - 1);
+    const offsets = [-1, 0, 1];
+    return smaller.flatMap(prefix => offsets.map(o => [...prefix, o]));
   },
 
-  /**
-   * Advances the grid by one step using the given rule.
-   * (Future: O(n) implementation focusing only on active cells)
-   */
-  step(grid, rule) {
-    // TODO: Implement efficient step algorithm
-    return grid;
-  }
+  // Creates a hypercube and fills it with a function based on local coordinates
+  _mapHypercube(sideLength, dimension, fn, prefix = []) {
+    if (dimension === 0) return fn(prefix);
+    return Array.from({ length: sideLength }, (_, i) =>
+      this._mapHypercube(sideLength, dimension - 1, fn, [...prefix, i])
+    );
+  },
+
+  //Checks if an nD hypercube contains only a single uniform value.
+  _isHypercubeUniform(array, value) {
+    if (!Array.isArray(array)) return array === value;
+    return array.every(el => this._isHypercubeUniform(el, value));
+  },
+  
 };
 
 export default caLib;
