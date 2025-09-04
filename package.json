@@ -1,0 +1,17 @@
+{
+  "name": "caLib",
+  "version": "1.0.0",
+  "description": "Library for cellular automata simulation",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/T6970/caLib.git"
+  },
+  "keywords": ["automata", "cellular automata", "voxel", "grid", "js", "JavaScript"],
+  "author": "T6970",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/T6970/caLib/issues"
+  },
+  "homepage": "https://github.com/T6970/caLib#readme"
+}
