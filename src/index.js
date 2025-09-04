@@ -1,4 +1,4 @@
-// CA LIBrary (or rather library for general purpose grid handling)
+// CA LIBrary (or rather a library for any general purpose grid handling)
 
 const caLib = {
 
@@ -127,9 +127,16 @@ const caLib = {
 
     return Object.freeze({ ...grid, chunks: newChunks });
     },
+
+  /*
   
+  ===========================================
+    INTERNAL FUNCTIONS - DO NOT USE OUTSIDE
+  ===========================================
   
-  // create a filled hypercube
+  */
+  
+  // Create a filled hypercube
   _hypercube(sideLength, dimension, fill) {
     if (dimension === 0) return fill;
     return Array.from({ length: sideLength }, () =>
@@ -150,12 +157,12 @@ const caLib = {
     );
   },
 
-  // normal equality checks reference, so this exists
+  // Normal equality checks reference, so this exists
   _equalArray(a, b) {
     return a.length === b.length && a.every((val, i) => val === b[i]);
   },
 
-  // generate all neighbour offsets (including the cell itself) for a given dimension
+  // Generate all neighbour offsets (including the cell itself) for a given dimension
   _neighborOffsets(dimension) {
     if (dimension === 0) return [[]];
     const smaller = this._neighborOffsets(dimension - 1);
@@ -171,7 +178,7 @@ const caLib = {
     );
   },
 
-  //Checks if an nD hypercube contains only a single uniform value.
+  // Checks if an nD hypercube contains only a single uniform value.
   _isHypercubeUniform(array, value) {
     if (!Array.isArray(array)) return array === value;
     return array.every(el => this._isHypercubeUniform(el, value));
