@@ -56,13 +56,6 @@ const caLib = {
   },
   
   
-  // placeholder
-  toRule(rulestring) {
-    // TODO: Implement rulestring parser
-    return () => {}; // Return a no-op rule for now
-  },
-  
-  
   /**
    * Advances the grid by one step using the provided rule.
    * @param {object} grid - The current grid object.
@@ -127,6 +120,15 @@ const caLib = {
 
     return Object.freeze({ ...grid, chunks: newChunks });
     },
+  
+  
+  /**
+   * Takes a rulestring and convert it to caLib-usable function.
+  */
+  toRule(rulestring) {
+    
+  }
+  
 
   /*
   
