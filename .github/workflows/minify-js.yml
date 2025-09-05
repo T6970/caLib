@@ -1,0 +1,32 @@
+name: Minify JS
+
+on:
+  push:
+    paths:
+      - 'src.js'   # only run when src.js changes
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install Terser
+        run: npm install terser -g
+
+      - name: Minify src.js
+        run: terser src.js -o index.js --compress --mangle
+
+      - name: Commit minified file
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.js
+          git commit -m "Auto-minify src.js" || echo "No changes to commit"
+          git push
