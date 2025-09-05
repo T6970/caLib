@@ -127,7 +127,7 @@ const caLib = {
   */
   toRule(rulestring) {
     
-  }
+  },
   
 
   /*
