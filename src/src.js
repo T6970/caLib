@@ -119,14 +119,30 @@ const caLib = {
     }
 
     return Object.freeze({ ...grid, chunks: newChunks });
-    },
+  },
   
   
   /**
-   * Takes a rulestring and convert it to caLib-usable function.
+  * Takes a rulestring and convert it to caLib-usable function.
   */
   toRule(rulestring) {
-    
+    const output = (cell, coords, getCell, birth, survival) => {
+    const [x, y] = coords;
+
+    let live = 0;
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        if (dx === 0 && dy === 0) continue; // skip self
+        if (getCell([x + dx, y + dy]) === 1) live++;
+      }
+    }
+
+    if (cell === 1) {
+      return survival.includes(live) ?1 : 0;
+    } else {
+      return birth.includes(live) ? 1 : 0;
+    }
+    };
   },
   
 
