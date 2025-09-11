@@ -126,7 +126,8 @@ const caLib = {
   * Takes a rulestring and convert it to caLib-usable function.
   */
   toRule(rulestring) {
-    const output = (cell, coords, getCell, birth, survival) => {
+    const rule = this.parseRule(rulestring);
+    return (cell, coords, getCell) => {
     const [x, y] = coords;
 
     let live = 0;
@@ -138,9 +139,9 @@ const caLib = {
     }
 
     if (cell === 1) {
-      return survival.includes(live) ?1 : 0;
+      return rule.survival.includes(live) ? 1 : 0;
     } else {
-      return birth.includes(live) ? 1 : 0;
+      return rule.birth.includes(live) ? 1 : 0;
     }
     };
   },
@@ -201,7 +202,21 @@ const caLib = {
     if (!Array.isArray(array)) return array === value;
     return array.every(el => this._isHypercubeUniform(el, value));
   },
-  
+
+  // Parses rulestring
+  function parseRule(ruleStr) {
+    const [b, s] = ruleStr.split('/');
+    const birth = b
+      .replace('B', '')
+      .split('')
+      .map(Number);
+    const survival = s
+      .replace('S', '')
+      .split('')
+      .map(Number);
+    return { birth, survival };
+  }
+
 };
 
 export default caLib;
