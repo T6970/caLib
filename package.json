@@ -1,5 +1,5 @@
 {
-  "name": "caLib",
+  "name": "@t6970/caLib",
   "version": "1.0.0",
   "description": "Library for cellular automata simulation",
   "main": "index.js",
