@@ -3,7 +3,7 @@ name: Minify JS
 on:
   push:
     paths:
-      - 'src.js'   # only run when src.js changes
+      - 'src/src.js'   # only run when src.js changes
 
 jobs:
   build:
