@@ -124,6 +124,8 @@ const caLib = {
   
   /**
   * Takes a rulestring and convert it to caLib-usable function.
+  * @param {string} rulestring - A string written in B/S notation or Hensel notation to represent a 2-state isotropic CA.
+  * @return {function} - a function usable by caLib.
   */
   toRule(rulestring) {
     const rule = this.parseRule(rulestring);
@@ -148,11 +150,10 @@ const caLib = {
   
 
   /*
-  
-  ===========================================
-    INTERNAL FUNCTIONS - DO NOT USE OUTSIDE
-  ===========================================
-  
+  ======================
+    INTERNAL FUNCTIONS
+    DO NOT USE OUTSIDE
+  ======================
   */
   
   // Create a filled hypercube
